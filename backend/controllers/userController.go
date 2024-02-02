@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -95,16 +94,17 @@ func (uc *UserController) LoginUser(ctx *gin.Context){
 	}
 	jwtToken,err:= util.GenerateToken(*findUser,findUser.Id)
 	if(err!=nil){
+		fmt.Println("here")
 		ctx.JSON(http.StatusBadRequest , gin.H{
 			"message" : err.Error(),
 		})
 		return
 	}
 	response:= models.UserResponse{
-		Id : user.Id,
-		UserName: user.UserName,
-		Email: user.Email,
-		IsAdmin: user.IsAdmin,
+		Id : findUser.Id,
+		UserName: findUser.UserName,
+		Email: findUser.Email,
+		IsAdmin: findUser.IsAdmin,
 	}
 	ctx.SetCookie("jwt",jwtToken,int(time.Hour*24),"/","localhost",false,true)
 	ctx.JSON(http.StatusOK , response)

@@ -8,7 +8,6 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-var secret = []byte("lmao")
 func GenerateToken(User models.User,userId string) (string,error){
 	claims := &models.CustomClaims{
 		Id: User.Id,
@@ -18,7 +17,7 @@ func GenerateToken(User models.User,userId string) (string,error){
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,claims)
 
-	tokenString,err:= token.SignedString(secret)
+	tokenString,err:= token.SignedString([]byte(Jwt_Secret))
 	if(err!=nil){
 		return "",err
 	}
@@ -28,7 +27,7 @@ func GenerateToken(User models.User,userId string) (string,error){
 func AuthorizeToken(jwtToken string) (bool,error){
 	claims:= &models.CustomClaims{}
 	token,err := jwt.ParseWithClaims(jwtToken,claims,func(token *jwt.Token) (any, error) {
-		return secret, nil
+		return []byte(Jwt_Secret), nil
 	})
 	if(err==jwt.ErrSignatureInvalid){
 		return false,err

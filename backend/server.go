@@ -2,14 +2,10 @@ package main
 
 import (
 	"backend/controllers"
-	// "backend/database"
+	"backend/util"
 	"backend/interfaces"
 	"context"
-	"fmt"
 	"log"
-
-	// "net/http"
-
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +19,8 @@ var(
 	ctx context.Context
 )
 func init(){
-	const uri = "mongodb+srv://sovajitr:Theanimeman@cluster0.yekwmys.mongodb.net/?retryWrites=true&w=majority"
+	util.Load()
+	uri:=util.Mongo_uri
 	// Use the SetServerAPIOptions() method to set the Stable API version to 1
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI)
@@ -34,16 +31,16 @@ func init(){
 		log.Fatal(err)
 	}
 	
-	fmt.Println("mongo conn established")
 	ctx = context.TODO()
 	server = gin.Default()
+
+	// Initializing
 	UserCollection = Client.Database("TODO").Collection("users")
 	userMethods=interfaces.UserMethodConst(UserCollection,ctx)
 	UserController = controllers.New(userMethods)
 }
 func main(){
 	defer Client.Disconnect(ctx)
-
 	basepath:= server.Group("/api")
 	UserController.RegisterUserRoutes(basepath)
 	log.Fatal(server.Run(":8080"))	
