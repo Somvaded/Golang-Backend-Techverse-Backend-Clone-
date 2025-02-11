@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -55,7 +57,6 @@ func (pc *ProductController) GetProduct(ctx *gin.Context){
 		})
 		return
 	}
-
 	ctx.JSON(http.StatusOK , products)
 } 
 
@@ -103,6 +104,7 @@ func(pc *ProductController) UpdateProduct(ctx *gin.Context){
 		ctx.JSON(http.StatusInternalServerError , gin.H{
 			"message" : err.Error(),
 		})
+		return
 	}
 	updatedProduct,err := pc.ProductMethods.UpdateProduct(&productData,productId)
 	if err != nil {
@@ -110,8 +112,54 @@ func(pc *ProductController) UpdateProduct(ctx *gin.Context){
 		ctx.JSON(http.StatusInternalServerError , gin.H{
 			"message" : err.Error(),
 		})
+		return
 	}
 	ctx.JSON(http.StatusOK , updatedProduct)
+}
+
+
+func(pc *ProductController) DeletedCount(ctx *gin.Context){
+	productId := ctx.Param("id")
+	_ , err := primitive.ObjectIDFromHex(productId)
+	if err!=nil {
+        ctx.JSON(http.StatusOK, gin.H{"message": "Invalid ObjectID format"})
+        return
+    }
+	err = pc.ProductMethods.DeleteProduct(productId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError , gin.H{
+			"message" : err.Error(),
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK , "Product deleted successfully")
+}
+
+func (pc *ProductController) CreateProductReview(ctx *gin.Context){
+	productId := ctx.Param("id")
+	
+	var review models.Review
+	err := ctx.ShouldBindJSON(&review)
+	if err!= nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message" : err.Error(),
+		})
+		return
+	}
+
+	review.CreatedAt = time.Now()
+	review.UpdatedAt = time.Now()
+
+	err = pc.ProductMethods.CreateProductReview(&review,productId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message" : err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, "Review created succesfully")
+
 }
 
 
@@ -119,9 +167,12 @@ func (pc *ProductController) RegisterProductRoutes (rg *gin.RouterGroup){
 	mainRoute := rg.Group("/products")
 	//public 
 	mainRoute.GET("/", pc.GetProduct)
+	//private
+	mainRoute.POST("/:id/review",pc.CreateProductReview)
 	//admin
 	adminRoute := mainRoute.Group("/admin" , middlewares.Protect, middlewares.Admin )
 	adminRoute.POST("/create" , pc.CreateNewProduct)
 	adminRoute.POST("/:id" , pc.UpdateProduct)
 	adminRoute.GET("/:id", pc.GetProductById)
+	adminRoute.DELETE("/delete/:id",pc.DeletedCount)
 }

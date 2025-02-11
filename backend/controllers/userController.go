@@ -84,7 +84,6 @@ func (uc *UserController) LoginUser(ctx *gin.Context){
 		})
 		return
 	}
-	fmt.Println(findUser.Password)
 	pass:=util.CheckPassword(findUser.Password,user.Password)
 	if(!pass){
 		ctx.JSON(http.StatusBadRequest , gin.H{
@@ -122,14 +121,14 @@ func(uc *UserController) LogoutUser (c *gin.Context){
 
 
 func (uc *UserController) GetUserProfile(ctx *gin.Context){
-	var User models.User
-	err := ctx.ShouldBindJSON(&User)
-	if(err!=nil) {
+	userId, exists := ctx.Get("userId")
+	id := userId.(string)
+	if(!exists) {
 		ctx.JSON(http.StatusBadGateway, gin.H{
-			"message":err.Error(),
+			"message":"User not logged in",
 		})
 	}
-	user ,err := uc.UserMethods.GetUser(&User.Id)
+	user ,err := uc.UserMethods.GetUser(&id)
 	if(err!=nil) {
 		ctx.JSON(http.StatusBadGateway, gin.H{
 			"message":err.Error(),
@@ -221,7 +220,6 @@ func (uc *UserController) RegisterUserRoutes(rg *gin.RouterGroup){
 
 	// private
 	userRoute:= mainRoute.Group("/",middlewares.Protect)
-	
 	userRoute.POST("/logout",uc.LogoutUser)
 	userRoute.GET("/profile",uc.GetUserProfile)
 	userRoute.PATCH("/profile",uc.UpdateUserProfile)
