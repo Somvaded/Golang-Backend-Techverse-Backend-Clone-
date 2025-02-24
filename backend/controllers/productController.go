@@ -6,6 +6,8 @@ import (
 	"backend/models"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -163,6 +165,57 @@ func (pc *ProductController) CreateProductReview(ctx *gin.Context){
 }
 
 
+func(pc *ProductController) uploadImage(c *gin.Context) {
+	const uploadDir = "./uploads"
+
+// Allowed file extensions
+    var allowedExtensions = map[string]bool{
+        ".jpg":  true,
+    	".jpeg": true,
+    	".png":  true,
+    	".gif":  true,
+    }
+	// Get file from the request
+	file, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+
+	// Get the file extension
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+
+	// Check if the file type is allowed
+	if !allowedExtensions[ext] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Only JPG, JPEG, PNG, and GIF are allowed"})
+		return
+	}
+
+	// Ensure the uploads directory exists
+	err = os.MkdirAll(uploadDir, os.ModePerm)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+		return
+	}
+
+	// Construct file path
+	filePath := filepath.Join(uploadDir, file.Filename)
+
+	// Save the uploaded file
+	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		return
+	}
+
+	// Respond with success
+	c.JSON(http.StatusOK, gin.H{
+		"message": "File uploaded successfully",
+		"file":    file.Filename,
+		"path":    filePath,
+	})
+}
+
+
 func (pc *ProductController) RegisterProductRoutes (rg *gin.RouterGroup){
 	mainRoute := rg.Group("/products")
 	//public 
@@ -175,4 +228,5 @@ func (pc *ProductController) RegisterProductRoutes (rg *gin.RouterGroup){
 	adminRoute.POST("/:id" , pc.UpdateProduct)
 	adminRoute.GET("/:id", pc.GetProductById)
 	adminRoute.DELETE("/delete/:id",pc.DeletedCount)
+	adminRoute.POST("/upload",pc.uploadImage)
 }
